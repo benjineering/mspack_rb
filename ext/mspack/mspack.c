@@ -46,6 +46,18 @@ static VALUE chmd_close(VALUE self, VALUE header) {
   return Qnil;
 }
 
+static VALUE chmd_extract(VALUE self, VALUE file, VALUE outputPath) {
+  struct mschm_decompressor *decom;
+  Data_Get_Struct(self, struct mschm_decompressor, decom);
+
+  struct mschmd_file *filePtr;
+  Data_Get_Struct(file, struct mschmd_file, filePtr);
+
+  const char *pathStr = StringValueCStr(outputPath);
+  return decom->extract(decom, filePtr, pathStr) == MSPACK_ERR_OK ? 
+    Qtrue : Qfalse;
+}
+
 static VALUE chmd_header_filename(VALUE self) {
   struct mschmd_header *header;
   Data_Get_Struct(self, struct mschmd_header, header);
@@ -89,6 +101,7 @@ void Init_mspack() {
   rb_define_alloc_func(ChmDecom, chmd_allocate);
   rb_define_method(ChmDecom, "open", chmd_open, 1);
   rb_define_method(ChmDecom, "close", chmd_close, 1);
+  rb_define_method(ChmDecom, "extract", chmd_extract, 2);
 
   ChmDHeader = rb_define_class_under(ChmDecom, "Header", rb_cObject);
   rb_define_method(ChmDHeader, "filename", chmd_header_filename, 0);

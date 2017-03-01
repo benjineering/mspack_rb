@@ -4,6 +4,8 @@ TEST_FILE_1 = File.expand_path("#{__dir__}/../chm_files/test1.chm")
 
 TEST_FILE_2 = File.expand_path("#{__dir__}/../chm_files/test2.chm")
 
+TEMP_DIR = File.expand_path("#{__dir__}/../../tmp/extraction_output")
+
 module Mspack
   describe ChmDecompressor do
     it 'opens a CHM file' do
@@ -26,6 +28,23 @@ module Mspack
       header = dcom.open(TEST_FILE_1)
       expect(header).not_to be nil      
       expect(dcom.close(header)).to be nil
+    end
+
+    it 'extracts files' do
+      dcom = ChmDecompressor.new
+      header = dcom.open(TEST_FILE_1)
+      file = header.files
+      expect(file).not_to be nil
+      path = "#{TEMP_DIR}/file"
+
+      while !file.nil?
+        File.delete(path) if File.exist?(path)
+        expect(dcom.extract(file, path)).to be true
+        expect(File.exist?(path)).to be true
+        file = file.next
+      end
+      
+      File.delete(path) if File.exist?(path)
     end
 
     describe ChmDecompressor::File do
