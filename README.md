@@ -5,7 +5,7 @@
 
 Requires libmspack to be installed.
 
-Currently, only (vary) basic CHM extraction has been implemented.
+Currently, only (very) basic CHM extraction has been implemented.
 
 ### Usage:
     require 'mspack_rb'
