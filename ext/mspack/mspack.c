@@ -4,6 +4,7 @@
 VALUE Mspack = Qnil;
 VALUE ChmDecom = Qnil;
 VALUE ChmDHeader = Qnil;
+VALUE ChmDFile = Qnil;
 
 VALUE mspack_test() {
   int result;
@@ -35,9 +36,13 @@ static VALUE chmd_open(VALUE self, VALUE path) {
 }
 
 static VALUE chmd_close(VALUE self, VALUE header) {
+  struct mschm_decompressor *decom;
+  Data_Get_Struct(self, struct mschm_decompressor, decom);
 
-  // TODO
+  struct mschmd_header *headerPtr;
+  Data_Get_Struct(header, struct mschmd_header, headerPtr);
 
+  decom->close(decom, headerPtr);
   return Qnil;
 }
 
@@ -45,6 +50,35 @@ static VALUE chmd_header_filename(VALUE self) {
   struct mschmd_header *header;
   Data_Get_Struct(self, struct mschmd_header, header);
   return rb_str_new2(header->filename);
+}
+
+static VALUE chmd_header_files(VALUE self) {
+  struct mschmd_header *header;
+  Data_Get_Struct(self, struct mschmd_header, header);
+  
+  VALUE fileObj = rb_obj_alloc(ChmDFile);
+  rb_obj_call_init(fileObj, 0, NULL);
+  return Data_Wrap_Struct(ChmDFile, NULL, NULL, header->files);
+}
+
+static VALUE chmd_file_filename(VALUE self) {
+  struct mschmd_file *file;
+  Data_Get_Struct(self, struct mschmd_file, file);
+  return rb_str_new2(file->filename);
+}
+
+static VALUE chmd_file_next(VALUE self) {
+  struct mschmd_file *file;
+  Data_Get_Struct(self, struct mschmd_file, file);  
+  struct mschmd_file *next = file->next;
+
+  if (next == NULL) {
+    return Qnil;
+  }
+
+  VALUE nextObj = rb_obj_alloc(ChmDFile);
+  rb_obj_call_init(nextObj, 0, NULL);
+  return Data_Wrap_Struct(ChmDFile, NULL, NULL, next);
 }
 
 void Init_mspack() {
@@ -58,4 +92,9 @@ void Init_mspack() {
 
   ChmDHeader = rb_define_class_under(ChmDecom, "Header", rb_cObject);
   rb_define_method(ChmDHeader, "filename", chmd_header_filename, 0);
+  rb_define_method(ChmDHeader, "files", chmd_header_files, 0);
+
+  ChmDFile = rb_define_class_under(ChmDecom, "File", rb_cObject);
+  rb_define_method(ChmDFile, "filename", chmd_file_filename, 0);
+  rb_define_method(ChmDFile, "next", chmd_file_next, 0);
 }
