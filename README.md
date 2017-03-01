@@ -2,9 +2,10 @@
 
 ### A simple Ruby native extension gem wrapper for [libmspack](https://www.cabextract.org.uk/libmspack/)
 
-Requires libmspack to be installed.
+Requires libmspack to be installed, and currently, only (very) basic CHM 
+extraction has been implemented.
 
-Currently, only (very) basic CHM extraction has been implemented.
+The gem is available over at [https://rubygems.org/gems/mspack_rb](https://rubygems.org/gems/mspack_rb).
 
 ### Usage:
     require 'mspack_rb'

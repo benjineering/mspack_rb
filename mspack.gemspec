@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary       = 'A ruby gem wrapper for libmspack'
   spec.description   = 'A ruby gem wrapper for libmspack'
   spec.homepage      = 'https://github.com/benjineering/mspack_rb'
+  s.licenses         = ['MIT', 'GPL-2']
 
   spec.metadata['allowed_push_host'] = 'https://rubygems.org'
 
