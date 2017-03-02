@@ -4,6 +4,36 @@ TEST_FILE_1 = File.expand_path("#{__dir__}/../chm_files/test1.chm")
 
 TEST_FILE_2 = File.expand_path("#{__dir__}/../chm_files/test2.chm")
 
+COMPRESSED_FILES_1 = [
+  '/#IDXHDR',
+  '/#ITBITS',
+  '/#STRINGS',
+  '/#SYSTEM',
+  '/#TOPICS',
+  '/#URLSTR',
+  '/#URLTBL',
+  '/$FIftiMain',
+  '/$OBJINST',
+  '/$WWAssociativeLinks/Property',
+  '/$WWKeywordLinks/Property',
+  '/test.html'
+]
+
+COMPRESSED_FILES_2 = [
+  '/#IDXHDR',
+  '/#ITBITS',
+  '/#STRINGS',
+  '/#SYSTEM',
+  '/#TOPICS',
+  '/#URLSTR',
+  '/#URLTBL',
+  '/$FIftiMain',
+  '/$OBJINST',
+  '/$WWAssociativeLinks/Property',
+  '/$WWKeywordLinks/Property',
+  '/test2.html'
+]
+
 TEMP_DIR = File.expand_path("#{__dir__}/../../tmp/extraction_output")
 
 module Mspack
@@ -47,27 +77,52 @@ module Mspack
       File.delete(path) if File.exist?(path)
     end
 
+
+    describe ChmDecompressor::Header do
+      it 'provides easy iteration of files' do
+        dcom = ChmDecompressor.new
+        header = dcom.open(TEST_FILE_1)
+        index = 0
+
+        header.each_file do |file|
+          expect(file.filename).to eq(COMPRESSED_FILES_1[index])
+          index += 1
+        end
+      end
+
+      it 'provides easy iteration of files and the current index number' do
+        dcom = ChmDecompressor.new
+        header = dcom.open(TEST_FILE_1)
+        expected_index = 0
+
+        header.each_file_with_index do |file, index|
+          expect(file.filename).to eq(COMPRESSED_FILES_1[index])
+          expect(index).to eq(expected_index)
+          expected_index += 1
+        end
+      end
+    end
+
+
     describe ChmDecompressor::File do
-      it 'has a file name beginning with /' do
+      it 'has the expected filename' do
         dcom = ChmDecompressor.new
         header = dcom.open(TEST_FILE_1)
         file = header.files
-        expect(file.filename).to match(/\/.+/)
+        expect(file.filename).to eq(COMPRESSED_FILES_1.first)
       end
 
       it "links to the next file, or nil if it's the last one" do
         dcom = ChmDecompressor.new
         header = dcom.open(TEST_FILE_1)
         file = header.files
-        count = 0
+        index = 0
 
         while !file.nil?
-          expect(file.filename).to match(/\/.+/)
+          expect(file.filename).to eq(COMPRESSED_FILES_1[index])
           file = file.next
-          count += 1
+          index += 1
         end
-
-        expect(count).to be > 1
       end
     end
   end
