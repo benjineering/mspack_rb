@@ -1,4 +1,4 @@
-require "mspack/mspack"
+require "mspack_native"
 require "mspack/version"
 
 module Mspack

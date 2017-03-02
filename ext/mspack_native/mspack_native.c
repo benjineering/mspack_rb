@@ -93,7 +93,7 @@ static VALUE chmd_file_next(VALUE self) {
   return Data_Wrap_Struct(ChmDFile, NULL, NULL, next);
 }
 
-void Init_mspack() {
+void Init_mspack_native() {
   Mspack = rb_define_module("Mspack");
   rb_define_singleton_method(Mspack, "test", mspack_test, 0);
 

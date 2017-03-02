@@ -8,7 +8,7 @@ extraction has been implemented.
 The gem is available over at [https://rubygems.org/gems/mspack_rb](https://rubygems.org/gems/mspack_rb).
 
 ### Usage:
-    require 'mspack_rb'
+    require 'mspack'
 
     dcom = Mspack::ChmDecompressor.new
     header = dcom.open('path/to/a/chm/file')

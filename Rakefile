@@ -2,9 +2,9 @@ require 'bundler/gem_tasks'
 require 'rake/extensiontask'
 require 'rspec/core/rake_task'
 
-Rake::ExtensionTask.new 'mspack' do |ext|
-  ext.lib_dir = 'lib/mspack'
-end
+spec = Gem::Specification.load('mspack.gemspec')
+
+Rake::ExtensionTask.new('mspack_native')
 
 RSpec::Core::RakeTask.new(:spec)
 
