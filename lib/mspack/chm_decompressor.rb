@@ -1,5 +1,12 @@
 module Mspack
   class ChmDecompressor
+
+
+    def extract(file, dir)
+
+    end
+
+
     class Header
 
       # Convenience method for iterating over files.
@@ -25,6 +32,7 @@ module Mspack
       end
 
     end
+
 
     class File
     end

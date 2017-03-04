@@ -69,7 +69,7 @@ module Mspack
 
       while !file.nil?
         File.delete(path) if File.exist?(path)
-        expect(dcom.extract(file, path)).to be true
+        expect(dcom.extract_to_path(file, path)).to be true
         expect(File.exist?(path)).to be true
         file = file.next
       end
