@@ -1,9 +1,15 @@
+require 'fileutils'
+
 module Mspack
   class ChmDecompressor
 
-
+    # Expects a ChmDecompressor::File and a string.
+    # Calls Mspack.ensure_path and extracts file.
+    # Returns the absolute file path.
     def extract(file, dir)
-
+      path = Mspack.ensure_path(file.filename, dir)
+      extract_to_path(file, path)
+      path
     end
 
 

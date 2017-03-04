@@ -10,14 +10,6 @@ The gem is available over at [https://rubygems.org/gems/mspack_rb](https://rubyg
 ### Usage:
     require 'mspack'
 
-    OUT_DIR = 'some/output/directory'
-
     dcom = Mspack::ChmDecompressor.new
     header = dcom.open('path/to/a/chm/file')
-
-    header.each_file do |file|
-      out_path = "#{OUT_DIR}#{file.filename}"
-      dcom.extract(file, out_path)
-    end
-
-    dcom.close(header)
+    header.each_file { |file| dcom.extract(file, out_path) }
