@@ -23,7 +23,7 @@ module Mspack
         "Expanded path #{path} is not within dir #{expanded_dir}"
     end
 
-    FileUtils.mkdir_p(File.basename(path))
+    FileUtils.mkdir_p(File.dirname(path))
     path
   end
 

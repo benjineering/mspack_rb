@@ -1,9 +1,9 @@
 require 'spec_helper'
 
 module Mspack
+  
   describe Mspack do
     describe '.test' do
-
       it 'returns true if libmspack is installed and working' do
         expect(Mspack.test).to be true
       end
@@ -41,7 +41,7 @@ module Mspack
       it 'creates writable parent folders for file.filename' do
         filename = '/blob?al0rt'
         full_path = Mspack.ensure_path(filename, TEMP_DIR_UNEXPANDED)
-        path = File.basename(full_path)
+        path = File.dirname(full_path)
         expect(File.directory?(path)).to be true
         expect(File.writable?(path)).to be true
       end
