@@ -16,7 +16,7 @@ The gem is available over at [https://rubygems.org/gems/mspack_rb](https://rubyg
     header = dcom.open('path/to/a/chm/file')
 
     header.each_file do |file|
-      out_path = "#{OUT_DIR}/#{file.filename}"
+      out_path = "#{OUT_DIR}#{file.filename}"
       dcom.extract(file, out_path)
     end
 
