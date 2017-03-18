@@ -14,7 +14,12 @@ module Mspack
         FileUtils.rm_rf("#{TEMP_DIR}/.")
       end
 
-      it 'raises an error if dir is not an existing, writable directory' do
+      skip "raises a type error if the parameters aren't both strings" do
+        expect { Mspack.ensure_path([], TEMP_DIR) }.to raise_error(TypeError)
+        expect { Mspack.ensure_path('/p00tsy', nil) }.to raise_error(TypeError)
+      end
+
+      it 'raises a path error if dir is not an existing, writable directory' do
         filename = 'p00t'
         dir = "#{TEMP_DIR}/non_writable"
         expect { Mspack.ensure_path(filename, dir) }.to raise_error(PathError)
@@ -54,7 +59,7 @@ module Mspack
         expect(File.exist?(path)).to be false
       end
       
-      it 'raises an error if the final, expanded path is outside of dir' do
+      it 'raises a path error if the final, expanded path is outside of dir' do
         filename = "../#{TEMP_DIR_UNEXPANDED}/../plorpus"
 
         expect { 

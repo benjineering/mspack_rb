@@ -9,6 +9,11 @@ module Mspack
 
     describe ChmDecompressor do
       describe '#open' do
+        skip "raises a type error if the parameter isn't a header" do
+          dcom = ChmDecompressor.new          
+          expect { dcom.open('?') }.to raise_error(TypeError)
+        end
+
         it 'returns a header' do
           dcom = ChmDecompressor.new
           header = dcom.open(TEST_FILE_1)
@@ -51,6 +56,20 @@ module Mspack
             path = dcom.extract(file, TEMP_DIR_UNEXPANDED)
             expect(File.file?(path)).to be true
           end
+        end
+      end
+
+      describe '#last_error' do
+        it 'returns :ok if there is no error' do
+          dcom = ChmDecompressor.new
+          expect(dcom.last_error).to eq(:ok)
+        end
+
+        it 'returns :open if open is called on a non-existant file' do
+          dcom = ChmDecompressor.new
+          non_existant_file = File.join(TEST_FILE_1, 'nuffin wot is')
+          dcom.open(non_existant_file)
+          expect(dcom.last_error).to eq(:open)
         end
       end
 

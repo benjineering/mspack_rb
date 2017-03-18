@@ -6,6 +6,53 @@ VALUE ChmDecom = Qnil;
 VALUE ChmDHeader = Qnil;
 VALUE ChmDFile = Qnil;
 
+static inline VALUE error_code_sym(int code) {
+  const char *str;
+
+  switch (code) {
+  case MSPACK_ERR_OK:
+    str = "ok";
+    break;
+  case MSPACK_ERR_ARGS:
+    str = "args";
+    break;
+  case MSPACK_ERR_OPEN:
+    str = "open";
+    break;
+  case MSPACK_ERR_READ:
+    str = "read";
+    break;
+  case MSPACK_ERR_WRITE:
+    str = "write";
+    break;
+  case  MSPACK_ERR_SEEK:
+    str = "seek";
+    break;
+  case MSPACK_ERR_NOMEMORY:
+    str = "no_memory";
+    break;
+  case MSPACK_ERR_SIGNATURE:
+    str = "signature";
+    break;
+  case MSPACK_ERR_DATAFORMAT:
+    str = "data_format";
+    break;
+  case MSPACK_ERR_CHECKSUM:
+    str = "checksum";
+    break;
+  case MSPACK_ERR_CRUNCH:
+    str = "crunch";
+    break;
+  case MSPACK_ERR_DECRUNCH:
+    str = "decrunch";
+    break;
+  default:
+    str = "unknown";
+  }
+
+  return ID2SYM(rb_intern(str));
+}
+
 void chmd_deallocate(void *decom) {
   mspack_destroy_chm_decompressor(decom);
 }
@@ -16,6 +63,8 @@ VALUE chmd_allocate(VALUE self) {
 }
 
 VALUE chmd_open(VALUE self, VALUE path) {
+  Check_Type(path, T_STRING);
+
   struct mschm_decompressor *decom;
   Data_Get_Struct(self, struct mschm_decompressor, decom);
   struct mschmd_header *header = decom->open(decom, StringValueCStr(path));
@@ -30,6 +79,10 @@ VALUE chmd_open(VALUE self, VALUE path) {
 }
 
 VALUE chmd_close(VALUE self, VALUE header) {
+  if (!CLASS_OF(header) == ChmDHeader) {
+    rb_raise(rb_eTypeError, "Parameter must be a CHM decompression header");
+  }
+
   struct mschm_decompressor *decom;
   Data_Get_Struct(self, struct mschm_decompressor, decom);
 
@@ -41,6 +94,12 @@ VALUE chmd_close(VALUE self, VALUE header) {
 }
 
 VALUE chmd_extract_to_path(VALUE self, VALUE file, VALUE outputPath) {
+  if (!CLASS_OF(file) == ChmDFile) {
+    rb_raise(rb_eTypeError, "First parameter must be a CHM decompression file");
+  }
+
+  Check_Type(outputPath, T_STRING);
+
   struct mschm_decompressor *decom;
   Data_Get_Struct(self, struct mschm_decompressor, decom);
 
@@ -50,6 +109,14 @@ VALUE chmd_extract_to_path(VALUE self, VALUE file, VALUE outputPath) {
   const char *pathStr = StringValueCStr(outputPath);
   return decom->extract(decom, filePtr, pathStr) == MSPACK_ERR_OK ? 
     Qtrue : Qfalse;
+}
+
+VALUE chmd_last_error(VALUE self) {
+  struct mschm_decompressor *decom;
+  Data_Get_Struct(self, struct mschm_decompressor, decom);
+
+  int error = decom->last_error(decom);
+  return error_code_sym(error);
 }
 
 VALUE chmd_header_filename(VALUE self) {
@@ -93,6 +160,7 @@ void Init_chm_decompressor() {
   rb_define_method(ChmDecom, "open", chmd_open, 1);
   rb_define_method(ChmDecom, "close", chmd_close, 1);
   rb_define_method(ChmDecom, "extract_to_path", chmd_extract_to_path, 2);
+  rb_define_method(ChmDecom, "last_error", chmd_last_error, 0);
 
   ChmDHeader = rb_define_class_under(ChmDecom, "Header", rb_cObject);
   rb_define_method(ChmDHeader, "filename", chmd_header_filename, 0);
