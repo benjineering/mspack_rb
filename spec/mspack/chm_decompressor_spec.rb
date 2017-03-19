@@ -9,9 +9,9 @@ module Mspack
 
     describe ChmDecompressor do
       describe '#open' do
-        skip "raises a type error if the parameter isn't a header" do
+        it "raises a type error if the parameter isn't a string" do
           dcom = ChmDecompressor.new          
-          expect { dcom.open('?') }.to raise_error(TypeError)
+          expect { dcom.open(1) }.to raise_error(TypeError)
         end
 
         it 'returns a header' do

@@ -12,6 +12,10 @@ module Mspack
   # Raises an error if the final, expanded path is outside of dir.
   # Returns the expanded file path.
   def self.ensure_path(filename, dir)
+    unless filename.is_a?(String) && dir.is_a?(String)
+      raise TypeError, 'both parameters must be strings'
+    end
+
     raise PathError, "#{dir} is not a directory" unless ::File.directory?(dir)
     raise PathError, "#{dir} is not writable" unless ::File.writable?(dir)
 

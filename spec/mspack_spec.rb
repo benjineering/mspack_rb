@@ -14,7 +14,7 @@ module Mspack
         FileUtils.rm_rf("#{TEMP_DIR}/.")
       end
 
-      skip "raises a type error if the parameters aren't both strings" do
+      it "raises a type error if the parameters aren't both strings" do
         expect { Mspack.ensure_path([], TEMP_DIR) }.to raise_error(TypeError)
         expect { Mspack.ensure_path('/p00tsy', nil) }.to raise_error(TypeError)
       end
