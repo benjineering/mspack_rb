@@ -3,6 +3,18 @@
 
 #include <mspack.h>
 
+void chmd_file_free(void *ptr) {
+  struct mschmd_file *file = (struct mschmd_file *)ptr;
+
+  if (file->length == 0) { // only free if it was created in fast_find
+    //if (file->filename) {
+    //  free(file->filename);
+    //}
+
+    free(file);
+  }
+}
+
 VALUE chmd_file_filename(VALUE self) {
   struct mschmd_file *file;
   Data_Get_Struct(self, struct mschmd_file, file);
@@ -23,7 +35,7 @@ VALUE chmd_file_next(VALUE self) {
     return Qnil;
   }
 
-  VALUE nextObj = Data_Wrap_Struct(ChmDFile, NULL, NULL, next);
+  VALUE nextObj = Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, next);
   rb_iv_set(nextObj, "is_fast_find", Qfalse);
   return nextObj;
 }
