@@ -6,7 +6,11 @@ VALUE ChmDecom = Qnil;
 VALUE ChmDHeader = Qnil;
 VALUE ChmDFile = Qnil;
 
-static inline VALUE error_code_sym(int code) {
+/*
+ * utility methods
+ */
+
+static inline VALUE _error_code_sym(int code) {
   const char *str;
 
   switch (code) {
@@ -53,6 +57,36 @@ static inline VALUE error_code_sym(int code) {
   return ID2SYM(rb_intern(str));
 }
 
+static inline VALUE _open(VALUE self, VALUE path, int fast_bool) {
+  Check_Type(path, T_STRING);
+
+  struct mschm_decompressor *decom;
+  Data_Get_Struct(self, struct mschm_decompressor, decom);
+
+  struct mschmd_header *header;
+
+  if (fast_bool) {
+    header = decom->fast_open(decom, StringValueCStr(path));
+  }
+  else {
+    header = decom->open(decom, StringValueCStr(path));
+  }
+
+  if (!header) {
+    return Qnil;
+  }
+
+  VALUE headerObj = Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
+  VALUE is_fast_open = fast_bool ? Qtrue : Qfalse;
+  rb_iv_set(headerObj, "is_fast_open", is_fast_open);
+
+  return headerObj;
+}
+
+/*
+ * decompressor
+ */
+
 void chmd_deallocate(void *decom) {
   mspack_destroy_chm_decompressor(decom);
 }
@@ -63,20 +97,7 @@ VALUE chmd_allocate(VALUE self) {
 }
 
 VALUE chmd_open(VALUE self, VALUE path) {
-  Check_Type(path, T_STRING);
-
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
-  struct mschmd_header *header = decom->open(decom, StringValueCStr(path));
-
-  if (!header) {
-    return Qnil;
-  }
-
-  VALUE headerObj = Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
-  rb_iv_set(headerObj, "is_fast_open", Qfalse);
-
-  return headerObj;
+  return _open(self, path, 0);
 }
 
 VALUE chmd_close(VALUE self, VALUE header) {
@@ -117,26 +138,16 @@ VALUE chmd_last_error(VALUE self) {
   Data_Get_Struct(self, struct mschm_decompressor, decom);
 
   int error = decom->last_error(decom);
-  return error_code_sym(error);
+  return _error_code_sym(error);
 }
 
 VALUE chmd_fast_open(VALUE self, VALUE path) {
-  Check_Type(path, T_STRING);
-
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
-
-  struct mschmd_header *header = decom->fast_open(decom, StringValueCStr(path));
-
-  if (!header) {
-    return Qnil;
-  }
-
-  VALUE headerObj = Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
-  rb_iv_set(headerObj, "is_fast_open", Qtrue);
-
-  return headerObj;
+  return _open(self, path, 1);
 }
+
+/*
+ * header
+ */
 
 VALUE chmd_header_filename(VALUE self) {
   struct mschmd_header *header;
@@ -158,6 +169,10 @@ VALUE chmd_header_files(VALUE self) {
 VALUE chmd_header_is_fast_open(VALUE self) {
   return rb_iv_get(self, "is_fast_open");
 }
+
+/*
+ * file
+ */
 
 VALUE chmd_file_filename(VALUE self) {
   struct mschmd_file *file;
