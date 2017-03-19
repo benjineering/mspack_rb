@@ -101,6 +101,36 @@ module Mspack
         end
       end
 
+      describe '#fast_find' do
+        it 'returns an extractable file when passed a header and a filename' do
+          dcom = ChmDecompressor.new
+          header = dcom.fast_open(TEST_FILE_1)
+          file = dcom.fast_find(header, '/#SYSTEM')
+          
+          expect(dcom.last_error).to eq(:ok)
+          expect(file).to be_instance_of(ChmDecompressor::File)
+
+          path = dcom.extract(file, TEMP_DIR_UNEXPANDED)
+          expect(File.file?(path)).to be true
+        end
+
+        it 'returns nil when the file does not exist' do
+          dcom = ChmDecompressor.new
+          header = dcom.fast_open(TEST_FILE_1)
+          file = dcom.fast_find(header, 'nuffink')
+
+          expect(file).to be nil
+        end
+
+        it 'returns true when #fast_find? is called on the returned file' do
+          dcom = ChmDecompressor.new
+          header = dcom.fast_open(TEST_FILE_1)
+          file = dcom.fast_find(header, '/#SYSTEM')
+
+          expect(file.fast_find?).to be true
+        end
+      end
+
 
       describe ChmDecompressor::Header do
         describe '#files' do
