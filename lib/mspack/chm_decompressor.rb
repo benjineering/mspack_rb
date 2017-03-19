@@ -36,7 +36,6 @@ module Mspack
           index += 1
         end
       end
-
     end
 
 

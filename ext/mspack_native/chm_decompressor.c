@@ -73,9 +73,10 @@ VALUE chmd_open(VALUE self, VALUE path) {
     return Qnil;
   }
 
-  VALUE headerObj = rb_obj_alloc(ChmDHeader);
-  rb_obj_call_init(headerObj, 0, NULL);
-  return Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
+  VALUE headerObj = Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
+  rb_iv_set(headerObj, "is_fast_open", Qfalse);
+
+  return headerObj;
 }
 
 VALUE chmd_close(VALUE self, VALUE header) {
@@ -105,10 +106,10 @@ VALUE chmd_extract_to_path(VALUE self, VALUE file, VALUE outputPath) {
 
   struct mschmd_file *filePtr;
   Data_Get_Struct(file, struct mschmd_file, filePtr);
-
   const char *pathStr = StringValueCStr(outputPath);
-  return decom->extract(decom, filePtr, pathStr) == MSPACK_ERR_OK ? 
-    Qtrue : Qfalse;
+
+  int result = decom->extract(decom, filePtr, pathStr);
+  return result == MSPACK_ERR_OK ? Qtrue : Qfalse;
 }
 
 VALUE chmd_last_error(VALUE self) {
@@ -117,6 +118,24 @@ VALUE chmd_last_error(VALUE self) {
 
   int error = decom->last_error(decom);
   return error_code_sym(error);
+}
+
+VALUE chmd_fast_open(VALUE self, VALUE path) {
+  Check_Type(path, T_STRING);
+
+  struct mschm_decompressor *decom;
+  Data_Get_Struct(self, struct mschm_decompressor, decom);
+
+  struct mschmd_header *header = decom->fast_open(decom, StringValueCStr(path));
+
+  if (!header) {
+    return Qnil;
+  }
+
+  VALUE headerObj = Data_Wrap_Struct(ChmDHeader, NULL, NULL, header);
+  rb_iv_set(headerObj, "is_fast_open", Qtrue);
+
+  return headerObj;
 }
 
 VALUE chmd_header_filename(VALUE self) {
@@ -128,10 +147,16 @@ VALUE chmd_header_filename(VALUE self) {
 VALUE chmd_header_files(VALUE self) {
   struct mschmd_header *header;
   Data_Get_Struct(self, struct mschmd_header, header);
+
+  if (!header->files) {
+    return Qnil;
+  }
   
-  VALUE fileObj = rb_obj_alloc(ChmDFile);
-  rb_obj_call_init(fileObj, 0, NULL);
   return Data_Wrap_Struct(ChmDFile, NULL, NULL, header->files);
+}
+
+VALUE chmd_header_is_fast_open(VALUE self) {
+  return rb_iv_get(self, "is_fast_open");
 }
 
 VALUE chmd_file_filename(VALUE self) {
@@ -145,7 +170,7 @@ VALUE chmd_file_next(VALUE self) {
   Data_Get_Struct(self, struct mschmd_file, file);  
   struct mschmd_file *next = file->next;
 
-  if (next == NULL) {
+  if (!next) {
     return Qnil;
   }
 
@@ -161,10 +186,12 @@ void Init_chm_decompressor() {
   rb_define_method(ChmDecom, "close", chmd_close, 1);
   rb_define_method(ChmDecom, "extract_to_path", chmd_extract_to_path, 2);
   rb_define_method(ChmDecom, "last_error", chmd_last_error, 0);
+  rb_define_method(ChmDecom, "fast_open", chmd_fast_open, 1);
 
   ChmDHeader = rb_define_class_under(ChmDecom, "Header", rb_cObject);
   rb_define_method(ChmDHeader, "filename", chmd_header_filename, 0);
   rb_define_method(ChmDHeader, "files", chmd_header_files, 0);
+  rb_define_method(ChmDHeader, "fast_open?", chmd_header_is_fast_open, 0);
 
   ChmDFile = rb_define_class_under(ChmDecom, "File", rb_cObject);
   rb_define_method(ChmDFile, "filename", chmd_file_filename, 0);

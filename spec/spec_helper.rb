@@ -2,6 +2,7 @@ $LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
 
 require 'mspack'
 require 'fileutils'
+require 'byebug'
 
 TEST_FILE_1 = File.expand_path("#{__dir__}/chm_files/test1.chm")
 

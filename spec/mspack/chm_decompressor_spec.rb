@@ -17,14 +17,22 @@ module Mspack
         it 'returns a header' do
           dcom = ChmDecompressor.new
           header = dcom.open(TEST_FILE_1)
+          expect(dcom.last_error).to eq(:ok)
+
           expect(header).to be_instance_of(ChmDecompressor::Header)
+          expect(dcom.last_error).to eq(:ok)
         end
 
         it 'allows creation of multiple instances with multiple files' do
           dcom1 = ChmDecompressor.new
           dcom2 = ChmDecompressor.new
+
           header1 = dcom1.open(TEST_FILE_1)
-          header2 = dcom1.open(TEST_FILE_2)
+          header2 = dcom2.open(TEST_FILE_2)
+
+          expect(dcom1.last_error).to eq(:ok)
+          expect(dcom2.last_error).to eq(:ok)
+
           expect(header1.filename).to eq(TEST_FILE_1)
           expect(header2.filename).to eq(TEST_FILE_2)
         end
@@ -44,6 +52,8 @@ module Mspack
             expect(File.exist?(path)).to be true
             file = file.next
           end
+
+          expect(dcom.last_error).to eq(:ok)
         end
       end
 
@@ -56,6 +66,8 @@ module Mspack
             path = dcom.extract(file, TEMP_DIR_UNEXPANDED)
             expect(File.file?(path)).to be true
           end
+
+          expect(dcom.last_error).to eq(:ok)
         end
       end
 
@@ -70,6 +82,22 @@ module Mspack
           non_existant_file = File.join(TEST_FILE_1, 'nuffin wot is')
           dcom.open(non_existant_file)
           expect(dcom.last_error).to eq(:open)
+        end
+      end
+
+      describe '#fast_open' do
+        it 'returns a header when passed a CHM file path' do
+          dcom = ChmDecompressor.new
+          header = dcom.fast_open(TEST_FILE_1)
+
+          expect(header).to be_instance_of(Mspack::ChmDecompressor::Header)
+          expect(dcom.last_error).to eq(:ok)
+        end
+
+        it 'returns true when header#fast_open? is called' do
+          dcom = ChmDecompressor.new
+          header = dcom.fast_open(TEST_FILE_1)
+          expect(header.fast_open?).to be true
         end
       end
 
@@ -96,6 +124,8 @@ module Mspack
               expect(file.filename).to eq(COMPRESSED_FILES_1[index])
               index += 1
             end
+
+            expect(dcom.last_error).to eq(:ok)
           end
         end
 
@@ -111,6 +141,8 @@ module Mspack
               expect(index).to eq(expected_index)
               expected_index += 1
             end
+
+            expect(dcom.last_error).to eq(:ok)
           end
         end
       end
