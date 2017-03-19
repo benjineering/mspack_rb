@@ -1,10 +1,9 @@
 #include "chm_decompressor.h"
+#include "mspack_native.h"
+#include "chm_decompressor_header.h"
+#include "chm_decompressor_file.h"
 
 #include <mspack.h>
-
-VALUE ChmDecom = Qnil;
-VALUE ChmDHeader = Qnil;
-VALUE ChmDFile = Qnil;
 
 /*
  * utility methods
@@ -173,70 +172,6 @@ VALUE chmd_fast_find(VALUE self, VALUE header, VALUE filename) {
   return fileObj;
 }
 
-/*
- * header
- */
-
-VALUE chmd_header_filename(VALUE self) {
-  struct mschmd_header *header;
-  Data_Get_Struct(self, struct mschmd_header, header);
-  return rb_str_new2(header->filename);
-}
-
-VALUE chmd_header_files(VALUE self) {
-  struct mschmd_header *header;
-  Data_Get_Struct(self, struct mschmd_header, header);
-
-  if (!header->files) {
-    return Qnil;
-  }
-  
-  VALUE file = Data_Wrap_Struct(ChmDFile, NULL, NULL, header->files);
-  rb_iv_set(file, "is_fast_find", Qfalse);
-  return file;
-}
-
-VALUE chmd_header_is_fast_open(VALUE self) {
-  return rb_iv_get(self, "is_fast_open");
-}
-
-/*
- * file
- */
-
-VALUE chmd_file_filename(VALUE self) {
-  struct mschmd_file *file;
-  Data_Get_Struct(self, struct mschmd_file, file);
-
-  if (!file->filename) {
-    return Qnil;
-  }
-
-  return rb_str_new2(file->filename);
-}
-
-VALUE chmd_file_next(VALUE self) {
-  struct mschmd_file *file;
-  Data_Get_Struct(self, struct mschmd_file, file);  
-  struct mschmd_file *next = file->next;
-
-  if (!next) {
-    return Qnil;
-  }
-
-  VALUE nextObj = Data_Wrap_Struct(ChmDFile, NULL, NULL, next);
-  rb_iv_set(nextObj, "is_fast_find", Qfalse);
-  return nextObj;
-}
-
-VALUE chmd_file_is_fast_find(VALUE self) {
-  return rb_iv_get(self, "is_fast_find");
-}
-
-/*
- * class declaration
- */
-
 void Init_chm_decompressor() {
   ChmDecom = rb_define_class_under(Mspack, "ChmDecompressor", rb_cObject);
   rb_define_alloc_func(ChmDecom, chmd_allocate);
@@ -246,14 +181,4 @@ void Init_chm_decompressor() {
   rb_define_method(ChmDecom, "last_error", chmd_last_error, 0);
   rb_define_method(ChmDecom, "fast_open", chmd_fast_open, 1);
   rb_define_method(ChmDecom, "fast_find", chmd_fast_find, 2);
-
-  ChmDHeader = rb_define_class_under(ChmDecom, "Header", rb_cObject);
-  rb_define_method(ChmDHeader, "filename", chmd_header_filename, 0);
-  rb_define_method(ChmDHeader, "files", chmd_header_files, 0);
-  rb_define_method(ChmDHeader, "fast_open?", chmd_header_is_fast_open, 0);
-
-  ChmDFile = rb_define_class_under(ChmDecom, "File", rb_cObject);
-  rb_define_method(ChmDFile, "filename", chmd_file_filename, 0);
-  rb_define_method(ChmDFile, "next", chmd_file_next, 0);
-  rb_define_method(ChmDFile, "fast_find?", chmd_file_is_fast_find, 0);
 }
