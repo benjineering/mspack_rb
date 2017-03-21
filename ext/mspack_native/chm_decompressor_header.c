@@ -1,4 +1,5 @@
 #include "chm_decompressor_header.h"
+#include "chm_decompressor_file.h"
 #include "mspack_native.h"
 
 #include <mspack.h>
@@ -16,10 +17,12 @@ VALUE chmd_header_files(VALUE self) {
   if (!header->files) {
     return Qnil;
   }
+
+  struct chmd_file_wrapper *wrapper = malloc(sizeof(struct chmd_file_wrapper));
+  wrapper->is_fast_find = 0;
+  wrapper->file = header->files;
   
-  VALUE file = Data_Wrap_Struct(ChmDFile, NULL, NULL, header->files);
-  rb_iv_set(file, "is_fast_find", Qfalse);
-  return file;
+  return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, wrapper);
 }
 
 VALUE chmd_header_is_fast_open(VALUE self) {

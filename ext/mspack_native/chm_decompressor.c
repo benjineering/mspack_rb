@@ -124,11 +124,11 @@ VALUE chmd_extract_to_path(VALUE self, VALUE file, VALUE outputPath) {
   struct mschm_decompressor *decom;
   Data_Get_Struct(self, struct mschm_decompressor, decom);
 
-  struct mschmd_file *filePtr;
-  Data_Get_Struct(file, struct mschmd_file, filePtr);
+  struct chmd_file_wrapper *wrapper;
+  Data_Get_Struct(file, struct chmd_file_wrapper, wrapper);
   const char *pathStr = StringValueCStr(outputPath);
 
-  int result = decom->extract(decom, filePtr, pathStr);
+  int result = decom->extract(decom, wrapper->file, pathStr);
   return result == MSPACK_ERR_OK ? Qtrue : Qfalse;
 }
 
@@ -167,9 +167,11 @@ VALUE chmd_fast_find(VALUE self, VALUE header, VALUE filename) {
   file->filename = malloc(sizeof(char) * strlen(filenameStr) + 1);
   strcpy(file->filename, filenameStr);
 
-  VALUE fileObj = Data_Wrap_Struct(ChmDFile, NULL, NULL, file);
-  rb_iv_set(fileObj, "is_fast_find", Qtrue);
-  return fileObj;
+  struct chmd_file_wrapper *wrapper = malloc(sizeof(struct chmd_file_wrapper));
+  wrapper->is_fast_find = 1;
+  wrapper->file = file;
+
+  return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, wrapper);
 }
 
 void Init_chm_decompressor() {

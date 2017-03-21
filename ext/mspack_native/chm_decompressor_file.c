@@ -4,44 +4,51 @@
 #include <mspack.h>
 
 void chmd_file_free(void *ptr) {
-  struct mschmd_file *file = (struct mschmd_file *)ptr;
+  struct chmd_file_wrapper *wrapper = (struct chmd_file_wrapper *)ptr;
 
-  if (file->length == 0) { // only free if it was created in fast_find
-    //if (file->filename) {
-    //  free(file->filename);
-    //}
+  if (wrapper->is_fast_find) {
+    if (wrapper->file->filename) {
+      free(wrapper->file->filename);
+    }
 
-    free(file);
+    free(wrapper->file);
   }
+
+  free(ptr);
 }
 
 VALUE chmd_file_filename(VALUE self) {
-  struct mschmd_file *file;
-  Data_Get_Struct(self, struct mschmd_file, file);
+  struct chmd_file_wrapper *wrapper;
+  Data_Get_Struct(self, struct chmd_file_wrapper, wrapper);
 
-  if (!file->filename) {
+  if (!wrapper->file->filename) {
     return Qnil;
   }
 
-  return rb_str_new2(file->filename);
+  return rb_str_new2(wrapper->file->filename);
 }
 
 VALUE chmd_file_next(VALUE self) {
-  struct mschmd_file *file;
-  Data_Get_Struct(self, struct mschmd_file, file);  
-  struct mschmd_file *next = file->next;
+  struct chmd_file_wrapper *wrapper;
+  Data_Get_Struct(self, struct chmd_file_wrapper, wrapper);
+  struct mschmd_file *next = wrapper->file->next;
 
   if (!next) {
     return Qnil;
   }
 
-  VALUE nextObj = Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, next);
-  rb_iv_set(nextObj, "is_fast_find", Qfalse);
-  return nextObj;
+  struct chmd_file_wrapper *next_wrapper = 
+    malloc(sizeof(struct chmd_file_wrapper));
+  next_wrapper->is_fast_find = 0;
+  next_wrapper->file = next;
+
+  return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, next_wrapper);
 }
 
 VALUE chmd_file_is_fast_find(VALUE self) {
-  return rb_iv_get(self, "is_fast_find");
+  struct chmd_file_wrapper *wrapper;
+  Data_Get_Struct(self, struct chmd_file_wrapper, wrapper);
+  return wrapper->is_fast_find ? Qtrue : Qfalse;
 }
 
 void Init_chm_decompressor_file() {
