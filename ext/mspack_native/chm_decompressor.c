@@ -1,7 +1,11 @@
 #include "chm_decompressor.h"
+
 #include "mspack_native.h"
+
 #include "chm_decompressor_header.h"
 #include "chm_decompressor_file.h"
+
+#include "io_system.h"
 
 #include <mspack.h>
 
@@ -91,7 +95,9 @@ void chmd_deallocate(void *decom) {
 }
 
 VALUE chmd_allocate(VALUE self) {
-  struct mschm_decompressor *decom = mspack_create_chm_decompressor(NULL);
+  struct mschm_decompressor *decom =
+    mspack_create_chm_decompressor(io_system());
+    
   return Data_Wrap_Struct(self, NULL, chmd_deallocate, decom);
 }
 
