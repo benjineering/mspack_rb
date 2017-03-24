@@ -99,14 +99,7 @@ int io_write(struct mspack_file *file, void *buffer, int bytes) {
     return (int)fwrite(buffer, 1, bytes, ((struct io_file *)file)->value.file);
   }
   else {
-    VALUE fixnum;
-    int *intBuffer = buffer;
-    VALUE data = rb_ary_new2(bytes);
-
-    for (int i = 0; i < bytes; ++i) {
-      fixnum = LONG2FIX(intBuffer[i]);
-      rb_ary_push(data, fixnum);
-    }
+    VALUE data = rb_str_new((char *)buffer, bytes);
 
     VALUE *block;
     block = ((struct io_file *)file)->value.block;

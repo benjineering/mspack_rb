@@ -61,9 +61,9 @@ module Mspack
           header = dcom.open(TEST_FILE_1)
           file = header.files
 
-          bytes = []
+          bytes = ''
           dcom.extract_to_path(file) do |data|
-            bytes.concat(data)
+            bytes += data
           end
 
           expect(bytes.length).to eq(file.length)
@@ -88,10 +88,10 @@ module Mspack
           header = dcom.open(TEST_FILE_2)
 
           header.each_file do |file|
-            data = []
+            data = ''
 
             path = dcom.extract(file) do |chunk|
-              data.concat(chunk)
+              data += chunk
             end
 
             expect(data.length).to eq(file.length)

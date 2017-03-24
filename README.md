@@ -22,7 +22,7 @@ The gem is available over at [https://rubygems.org/gems/mspack_rb](https://rubyg
     dcom.extract(file, '~/some/folder') unless file.nil?
 
     # Get extracted file bytes as an array
-    dcom.extract(file) { |data_chunk| do_something_with_array(data_chunk) }
+    dcom.extract(file) { |data_chunk| do_something_with_bin_string(data_chunk) }
 
     # check last error
     p 'w00t' if dcom.last_error == :ok
