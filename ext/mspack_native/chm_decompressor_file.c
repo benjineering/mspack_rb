@@ -39,10 +39,17 @@ VALUE chmd_file_next(VALUE self) {
 
   struct chmd_file_wrapper *next_wrapper = 
     malloc(sizeof(struct chmd_file_wrapper));
+    
   next_wrapper->is_fast_find = 0;
   next_wrapper->file = next;
 
   return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, next_wrapper);
+}
+
+VALUE chmd_file_length(VALUE self) {
+  struct chmd_file_wrapper *wrapper;
+  Data_Get_Struct(self, struct chmd_file_wrapper, wrapper);
+  return LONG2FIX(wrapper->file->length);
 }
 
 VALUE chmd_file_is_fast_find(VALUE self) {
@@ -55,5 +62,6 @@ void Init_chm_decompressor_file() {
   ChmDFile = rb_define_class_under(ChmDecom, "File", rb_cObject);
   rb_define_method(ChmDFile, "filename", chmd_file_filename, 0);
   rb_define_method(ChmDFile, "next", chmd_file_next, 0);
+  rb_define_method(ChmDFile, "length", chmd_file_length, 0);
   rb_define_method(ChmDFile, "fast_find?", chmd_file_is_fast_find, 0);
 }

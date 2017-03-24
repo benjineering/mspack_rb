@@ -55,6 +55,19 @@ module Mspack
 
           expect(dcom.last_error).to eq(:ok)
         end
+
+        it 'can take a block instead of a file path' do
+          dcom = ChmDecompressor.new
+          header = dcom.open(TEST_FILE_1)
+          file = header.files
+
+          bytes = []
+          dcom.extract_to_path(file) do |data|
+            bytes.concat(data)
+          end
+
+          expect(bytes.length).to eq(file.length)
+        end
       end
 
       describe '#extract' do
@@ -201,6 +214,15 @@ module Mspack
               file = file.next
               index += 1
             end
+          end
+        end
+
+        describe '#length' do
+          it "returns the length of the file, or 0 if opened via fast_find" do
+            dcom = ChmDecompressor.new
+            header = dcom.open(TEST_FILE_1)
+            file = header.files
+            expect(file.length).to eq(4096)
           end
         end
 

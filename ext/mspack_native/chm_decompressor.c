@@ -9,6 +9,11 @@
 
 #include <mspack.h>
 
+struct decom_wrapper {
+  struct mschm_decompressor *decom;
+  struct mspack_system *system;
+};
+
 /*
  * utility methods
  */
@@ -63,16 +68,16 @@ static inline VALUE _error_code_sym(int code) {
 static inline VALUE _open(VALUE self, VALUE path, int fast_bool) {
   Check_Type(path, T_STRING);
 
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
+  struct decom_wrapper *wrapper;
+  Data_Get_Struct(self, struct decom_wrapper, wrapper);
 
   struct mschmd_header *header;
 
   if (fast_bool) {
-    header = decom->fast_open(decom, StringValueCStr(path));
+    header = wrapper->decom->fast_open(wrapper->decom, StringValueCStr(path));
   }
   else {
-    header = decom->open(decom, StringValueCStr(path));
+    header = wrapper->decom->open(wrapper->decom, StringValueCStr(path));
   }
 
   if (!header) {
@@ -90,15 +95,17 @@ static inline VALUE _open(VALUE self, VALUE path, int fast_bool) {
  * decompressor
  */
 
-void chmd_deallocate(void *decom) {
-  mspack_destroy_chm_decompressor(decom);
+void chmd_deallocate(void *wrapper) {
+  mspack_destroy_chm_decompressor(((struct decom_wrapper *)wrapper)->decom);
+  free(((struct decom_wrapper *)wrapper)->system);
+  free((struct decom_wrapper *)wrapper);
 }
 
 VALUE chmd_allocate(VALUE self) {
-  struct mschm_decompressor *decom =
-    mspack_create_chm_decompressor(io_system());
-    
-  return Data_Wrap_Struct(self, NULL, chmd_deallocate, decom);
+  struct decom_wrapper *wrapper = malloc(sizeof(struct decom_wrapper));
+  wrapper->system = io_system();
+  wrapper->decom = mspack_create_chm_decompressor(wrapper->system);    
+  return Data_Wrap_Struct(self, NULL, chmd_deallocate, wrapper);
 }
 
 VALUE chmd_open(VALUE self, VALUE path) {
@@ -110,39 +117,65 @@ VALUE chmd_close(VALUE self, VALUE header) {
     rb_raise(rb_eTypeError, "Parameter must be a CHM decompression header");
   }
 
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
+  struct decom_wrapper *wrapper;
+  Data_Get_Struct(self, struct decom_wrapper, wrapper);
 
   struct mschmd_header *headerPtr;
   Data_Get_Struct(header, struct mschmd_header, headerPtr);
 
-  decom->close(decom, headerPtr);
+  wrapper->decom->close(wrapper->decom, headerPtr);
   return Qnil;
 }
 
-VALUE chmd_extract_to_path(VALUE self, VALUE file, VALUE outputPath) {
+/*
+ * Form 1:
+ * extract_to_path(file, outputPath)
+ *
+ * Form 2:
+ * extract_to_path(file) { |data_chunk| do_something(data_chunk) }
+ */
+VALUE chmd_extract_to_path(int argc, VALUE* argv, VALUE self) {
+  VALUE file;
+  VALUE outputPath;
+  rb_scan_args(argc, argv, "11", &file, &outputPath);
+  const char *pathStr;
+
   if (!CLASS_OF(file) == ChmDFile) {
     rb_raise(rb_eTypeError, "First parameter must be a CHM decompression file");
   }
 
-  Check_Type(outputPath, T_STRING);
+  if (argc == 1) {
+    rb_need_block();
 
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
+    VALUE block;
+    block = rb_block_proc();
 
-  struct chmd_file_wrapper *wrapper;
-  Data_Get_Struct(file, struct chmd_file_wrapper, wrapper);
-  const char *pathStr = StringValueCStr(outputPath);
+    VALUE blockName = rb_funcall(block, rb_intern("to_s"), 0);
+    pathStr = StringValueCStr(blockName);
+    add_block(&blockName, &block);
+  }
+  else {
+    Check_Type(outputPath, T_STRING);
+    pathStr = StringValueCStr(outputPath);
+  }
 
-  int result = decom->extract(decom, wrapper->file, pathStr);
+  struct decom_wrapper *wrapper;
+  Data_Get_Struct(self, struct decom_wrapper, wrapper);
+
+  struct chmd_file_wrapper *headerWrapper;
+  Data_Get_Struct(file, struct chmd_file_wrapper, headerWrapper);
+
+  int result = 
+    wrapper->decom->extract(wrapper->decom, headerWrapper->file, pathStr);
+
   return result == MSPACK_ERR_OK ? Qtrue : Qfalse;
 }
 
 VALUE chmd_last_error(VALUE self) {
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
+  struct decom_wrapper *wrapper;
+  Data_Get_Struct(self, struct decom_wrapper, wrapper);
 
-  int error = decom->last_error(decom);
+  int error = wrapper->decom->last_error(wrapper->decom);
   return _error_code_sym(error);
 }
 
@@ -151,8 +184,8 @@ VALUE chmd_fast_open(VALUE self, VALUE path) {
 }
 
 VALUE chmd_fast_find(VALUE self, VALUE header, VALUE filename) {
-  struct mschm_decompressor *decom;
-  Data_Get_Struct(self, struct mschm_decompressor, decom);
+  struct decom_wrapper *wrapper;
+  Data_Get_Struct(self, struct decom_wrapper, wrapper);
 
   struct mschmd_header *headerPtr;
   Data_Get_Struct(header, struct mschmd_header, headerPtr);
@@ -162,8 +195,8 @@ VALUE chmd_fast_find(VALUE self, VALUE header, VALUE filename) {
   int structSize = sizeof(struct mschmd_file);
   struct mschmd_file *file = malloc(structSize);
 
-  int result = 
-    decom->fast_find(decom, headerPtr, filenameStr, file, structSize);
+  int result = wrapper->decom->fast_find(
+    wrapper->decom, headerPtr, filenameStr, file, structSize);
 
   if (result != MSPACK_ERR_OK || file->length == 0) {
     free(file);
@@ -173,11 +206,12 @@ VALUE chmd_fast_find(VALUE self, VALUE header, VALUE filename) {
   file->filename = malloc(sizeof(char) * strlen(filenameStr) + 1);
   strcpy(file->filename, filenameStr);
 
-  struct chmd_file_wrapper *wrapper = malloc(sizeof(struct chmd_file_wrapper));
-  wrapper->is_fast_find = 1;
-  wrapper->file = file;
+  struct chmd_file_wrapper *fileWrapper = 
+    malloc(sizeof(struct chmd_file_wrapper));
+  fileWrapper->is_fast_find = 1;
+  fileWrapper->file = file;
 
-  return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, wrapper);
+  return Data_Wrap_Struct(ChmDFile, NULL, chmd_file_free, fileWrapper);
 }
 
 void Init_chm_decompressor() {
@@ -185,7 +219,7 @@ void Init_chm_decompressor() {
   rb_define_alloc_func(ChmDecom, chmd_allocate);
   rb_define_method(ChmDecom, "open", chmd_open, 1);
   rb_define_method(ChmDecom, "close", chmd_close, 1);
-  rb_define_method(ChmDecom, "extract_to_path", chmd_extract_to_path, 2);
+  rb_define_method(ChmDecom, "extract_to_path", chmd_extract_to_path, -1);
   rb_define_method(ChmDecom, "last_error", chmd_last_error, 0);
   rb_define_method(ChmDecom, "fast_open", chmd_fast_open, 1);
   rb_define_method(ChmDecom, "fast_find", chmd_fast_find, 2);
