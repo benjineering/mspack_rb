@@ -77,10 +77,26 @@ module Mspack
 
           header.each_file_with_index do |file, index|
             path = dcom.extract(file, TEMP_DIR_UNEXPANDED)
+            
             expect(File.file?(path)).to be true
+            expect(dcom.last_error).to eq(:ok)
           end
+        end
 
-          expect(dcom.last_error).to eq(:ok)
+        it 'can take a block instead of a file path' do
+          dcom = ChmDecompressor.new
+          header = dcom.open(TEST_FILE_2)
+
+          header.each_file do |file|
+            data = []
+
+            path = dcom.extract(file) do |chunk|
+              data.concat(chunk)
+            end
+
+            expect(data.length).to eq(file.length)
+            expect(dcom.last_error).to eq(:ok)
+          end
         end
       end
 

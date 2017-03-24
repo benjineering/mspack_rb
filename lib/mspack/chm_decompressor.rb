@@ -6,9 +6,14 @@ module Mspack
     # Expects a ChmDecompressor::File and a string.
     # Calls Mspack.ensure_path and extracts file.
     # Returns the absolute file path.
-    def extract(file, dir)
-      path = Mspack.ensure_path(file.filename, dir)
-      extract_to_path(file, path)
+    def extract(file, dir = nil)
+      if block_given?
+        extract_to_path(file) { |data| yield data }
+      else
+        path = Mspack.ensure_path(file.filename, dir)
+        extract_to_path(file, path)
+      end
+
       path
     end
 
