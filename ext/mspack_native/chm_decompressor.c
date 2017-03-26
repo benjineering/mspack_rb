@@ -146,13 +146,10 @@ VALUE chmd_extract_to_path(int argc, VALUE* argv, VALUE self) {
 
   if (argc == 1) {
     rb_need_block();
-
-    VALUE block;
-    block = rb_block_proc();
-
-    VALUE blockName = rb_funcall(block, rb_intern("to_s"), 0);
-    pathStr = StringValueCStr(blockName);
-    add_block(&blockName, &block);
+    VALUE block = rb_block_proc();
+    VALUE block_name = rb_funcall(block, rb_intern("object_id"), 0);
+    VALUE block_name_str = rb_funcall(block_name, rb_intern("to_s"), 0);
+    pathStr = StringValueCStr(block_name_str);
   }
   else {
     Check_Type(outputPath, T_STRING);

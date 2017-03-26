@@ -1,6 +1,8 @@
 #include "io_system.h"
 #include "chm_decompressor.h"
 
+#include <ruby.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,43 +11,21 @@
 
 union io_file_value {
   FILE *file;
-  VALUE *block;
+  VALUE block;
 };
 
 struct io_file {
-  char *name; // only used for block handle
+  int is_block;
   union io_file_value value;
 };
 
-struct io_file *blocks[IO_SYSTEM_MAX_BLOCKS];
-
-inline struct io_file *pop_block(const char *name) {
-  for (int i = 0; i < IO_SYSTEM_MAX_BLOCKS - 1; ++i) {
-    struct io_file *block = blocks[i];
-
-    if (block) {
-      if (strcmp(name, block->name) == 0) {
-        blocks[i] = NULL;
-        return block;
-      }
-    }
-  }
-
-  return NULL;
-}
-
 struct mspack_file *
 io_open(struct mspack_system *self, const char *filename, int mode) {
-  struct io_file *block = NULL;
-
-  if (mode != MSPACK_SYS_OPEN_READ) {
-    block = pop_block(filename);
+  if (strlen(filename) < 1) {
+    return NULL;
   }
 
-  if (block) {
-    return (struct mspack_file *)block;
-  }
-  else {
+  if (filename[0] == '/') {
     const char *modeStr;
 
     switch (mode) {
@@ -67,7 +47,7 @@ io_open(struct mspack_system *self, const char *filename, int mode) {
 
     struct io_file *file = malloc(sizeof(struct io_file));
     file->value.file = fopen(filename, modeStr);
-    file->name = NULL;
+    file->is_block = 0;
 
     if (file->value.file) {
       return (struct mspack_file *)file;
@@ -77,14 +57,28 @@ io_open(struct mspack_system *self, const char *filename, int mode) {
       return NULL;
     }
   }
+
+  else {
+    VALUE block_id_str = rb_str_new_cstr(filename);
+    VALUE block_id = rb_funcall(block_id_str, rb_intern("to_i"), 0);
+    VALUE object_space = rb_const_get(rb_cModule, rb_intern("ObjectSpace"));
+    VALUE block = rb_funcall(object_space, rb_intern("_id2ref"), 1, block_id);
+
+    if (block == Qnil) {
+      return NULL;
+    }
+    else {
+      struct io_file *file = malloc(sizeof(struct io_file));
+      file->value.block = block;
+      file->is_block = 1;
+      return (struct mspack_file *)file;
+    }
+  }
 }
 
 void io_close(struct mspack_file *file) {
-  if (!((struct io_file *)file)->name) {
+  if (!((struct io_file *)file)->is_block) {
     fclose(((struct io_file *)file)->value.file);
-  }
-  else {
-    free(((struct io_file *)file)->name);
   }
 
   free(file);
@@ -95,15 +89,13 @@ int io_read(struct mspack_file *file, void *buffer, int bytes) {
 }
 
 int io_write(struct mspack_file *file, void *buffer, int bytes) {
-  if (!((struct io_file *)file)->name) {
+  if (!((struct io_file *)file)->is_block) {
     return (int)fwrite(buffer, 1, bytes, ((struct io_file *)file)->value.file);
   }
   else {
     VALUE data = rb_str_new((char *)buffer, bytes);
-
-    VALUE *block;
-    block = ((struct io_file *)file)->value.block;
-    rb_funcall(*block, rb_intern("yield"), 1, data);
+    VALUE block = ((struct io_file *)file)->value.block;
+    rb_funcall(block, rb_intern("yield"), 1, data);
     return bytes;
   }
 }
@@ -149,21 +141,4 @@ struct mspack_system *io_system() {
   system->copy = io_copy;
   system->null_ptr = NULL;
   return system;
-}
-
-// TODO: chuck an error if we're full
-void add_block(VALUE *name, VALUE *block) {
-  for (int i = 0; i < IO_SYSTEM_MAX_BLOCKS - 1; ++i) {
-
-    if (!blocks[i]) {
-      struct io_file *file = malloc(sizeof(struct io_file));
-      file->value.block = block;
-
-      const char *nameStr = StringValueCStr(*name);
-      file->name = malloc(sizeof(char) * strlen(nameStr) + 1);
-      strcpy(file->name, nameStr);
-
-      blocks[i] = file;
-    }
-  }
 }
