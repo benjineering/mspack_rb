@@ -100,7 +100,7 @@ module Mspack
         end
 
         it 'can take a take a block and a buffer size' do
-          [ 100, 3000 ].each do |buffer_size|
+          [ 4_096, 100_000_000 ].each do |buffer_size|
             dcom = ChmDecompressor.new
             header = dcom.open(TEST_FILE_1)
             data  = ''
