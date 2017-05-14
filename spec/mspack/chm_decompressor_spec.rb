@@ -98,6 +98,31 @@ module Mspack
             expect(dcom.last_error).to eq(:ok)
           end
         end
+
+        it 'can take a take a block and a buffer size' do
+          [ 100, 3000 ].each do |buffer_size|
+            dcom = ChmDecompressor.new
+            header = dcom.open(TEST_FILE_1)
+            data  = ''
+            is_first_chunk = true
+          
+            header.each_file_with_index do |file, index|
+
+              dcom.extract(file, buffer_size) do |chunk|
+                data += chunk
+
+                if is_first_chunk
+                  expect(chunk.size).to eq(buffer_size)
+                else
+                  expect(chunk.size).to be <= buffer_size
+                end
+              end
+
+              expect(data.length).to eq(file.length)
+              expect(dcom.last_error).to eq(:ok)
+            end
+          end
+        end
       end
 
       describe '#last_error' do

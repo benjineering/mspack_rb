@@ -8,4 +8,4 @@ Rake::ExtensionTask.new('mspack_native')
 
 RSpec::Core::RakeTask.new(:spec)
 
-task default: [ :compile, :spec ]
+task default: [ :clean, :compile, :spec ]
