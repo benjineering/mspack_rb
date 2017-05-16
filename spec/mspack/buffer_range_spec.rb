@@ -31,5 +31,38 @@ module Mspack
         expect(range).to eq(6..0)
       end
     end
+
+    describe '#length' do
+      it 'returns the range length' do
+        range = BufferRange.new(8, 0..5)
+        expect(range.length).to eq(6)
+      end
+
+      it 'loops back around when counting the length if it includes #max' do
+        range = BufferRange.new(9, 8..1)
+        expect(range.length).to eq(4)
+      end
+    end
+
+    describe '#-' do
+      it 'decrements both #begin and #end by the num parameter' do
+        range = BufferRange.new(8, 6..8)
+        range -= 2
+        expect(range).to eq(4..6)
+      end
+
+      it "swings back around if advanced beyond #max (hint: it's 0 based)" do
+        range = BufferRange.new(4, 3..1)
+        range -= 3
+        expect(range).to eq(0..3)
+      end
+    end
+
+    describe '#zero' do
+      it 'moves the range to start at 0' do
+        range = BufferRange.new(5, 5..2)
+        expect(range.zero).to eq(0..3)
+      end
+    end
   end
 end
