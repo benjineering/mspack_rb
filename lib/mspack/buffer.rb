@@ -4,34 +4,30 @@ module Mspack
   class Buffer < Array
 
     def [](range)
-      super(range) if range.begin <= range.end
+      return super(range) if range.begin <= range.end
 
-      a = Buffer.new(length, 0)
+      sub_array = Buffer.new(length, 0)
+      advanced_1 = range.begin..(length - 1)
+      zeroed = range.zero
+      sub_array[zeroed] = super(advanced_1)
 
-      range_1 = range.begin..(length - 1)
-      advanced_1 = 0..(range.length - range.begin - 1)
-      a[advanced_1] = super(range_1)
+      if range.end > 0
+        range_2 = Range.new(range.max, 0..range.end)
+        advanced_2 = (range.length - range.begin)..range.end
+        sub_array[range_2] = super(advanced_2)
+      end
 
-      range_2 = 0..range.end
-      advanced_2 = (range.length - range.begin)..range.end
-      a[advanced_2] = super(range_2)
-
-      a
+      sub_array
     end
 
     def []=(range, data)
-      super(range, data) if range.begin <= range.end
+      return super(range, data) if range.is_a?(Fixnum) && data.is_a?(Fixnum)
 
-      range_length = 
-      if range.begin <= range.end
-        range.end - range.begin
-      else
-        range.max - range.begin - 1 + range.end
+      if data.length > range.length
+        raise ArgumentError, 'data#length exceeds range#length'
       end
 
-      if data.length > range_length
-        raise ArgumentError, 'data#length exceeds range length'
-      end
+      return super(range, data) if range.begin <= range.end
 
       super(range.begin..(length - 1), data[range.begin..data.max])
       super(0..range.end, data[0..range.end])
