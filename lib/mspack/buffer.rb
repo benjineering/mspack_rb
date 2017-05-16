@@ -7,21 +7,17 @@ module Mspack
       return super(range) if range.begin <= range.end
 
       sub_array = Buffer.new(length, 0)
-      advanced_1 = range.begin..(length - 1)
-      zeroed = range.zero
-      sub_array[zeroed] = super(advanced_1)
+      rollover = range.max - range.begin
 
-      if range.end > 0
-        range_2 = Range.new(range.max, 0..range.end)
-        advanced_2 = (range.length - range.begin)..range.end
-        sub_array[range_2] = super(advanced_2)
-      end
+      sub_array[0..rollover] = super(range.begin..range.max)
+      sub_array[(rollover + 1)..range.length] = super(0..range.end)
 
       sub_array
     end
 
     def []=(range, data)
       return super(range, data) if range.is_a?(Fixnum) && data.is_a?(Fixnum)
+      return super(range, data) if range.instance_of?(Range)
 
       if data.length > range.length
         raise ArgumentError, 'data#length exceeds range#length'

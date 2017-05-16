@@ -5,9 +5,9 @@ module Mspack
 
     describe '#[buffer_range]' do
       it 'accepts a BufferRange and returns a sub-array' do
-        range = BufferRange.new(4, 2..0)
+        range = BufferRange.new(4, 2..1)
         buffer = Buffer.new([ 0, 1, 2, 3, 4 ])
-        expect(buffer[range]).to eq([ 2, 3, 4, 0 ])
+        expect(buffer[range]).to eq([ 2, 3, 4, 0, 1 ])
       end
     end
 
