@@ -2,9 +2,6 @@ require "mspack_native"
 
 require 'fileutils'
 
-require 'mspack/buffer'
-require 'mspack/buffer_range'
-
 require 'mspack/chm_decompressor'
 require 'mspack/version'
 

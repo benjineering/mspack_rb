@@ -99,28 +99,37 @@ module Mspack
           end
         end
 
-        it 'can take a take a block and a buffer size' do
-          [ 4_096, 100_000_000 ].each do |buffer_size|
-            dcom = ChmDecompressor.new
-            header = dcom.open(TEST_FILE_1)
-            data  = ''
-            is_first_chunk = true
+        it 'raises an ArgumentError if the buffer size is not a multiple of '\
+        'DEFAULT_BUFFER_SIZE' do
+          buffer_size = 4097
+          dcom = ChmDecompressor.new
+          header = dcom.open(TEST_FILE_2)
           
-            header.each_file_with_index do |file, index|
+          expect {
+            dcom.extract(header.files, buffer_size) { |chunk| }
+            }.to raise_error(ArgumentError)
+        end
 
-              dcom.extract(file, buffer_size) do |chunk|
-                data += chunk
+        it 'can take a take a block and a buffer size' do
+          buffer_size = 8192
+          dcom = ChmDecompressor.new
+          header = dcom.open(TEST_FILE_1)
+        
+          header.each_file_with_index do |file, index|
+            data  = ''
 
-                if is_first_chunk
-                  expect(chunk.size).to eq(buffer_size)
-                else
-                  expect(chunk.size).to be <= buffer_size
-                end
+            dcom.extract(file, buffer_size) do |chunk|
+              data += chunk
+
+              if file.length == 0
+                expect(chunk.size).to eq(0)
+              else
+                expect(chunk.size).to be <= buffer_size
               end
-
-              expect(data.length).to eq(file.length)
-              expect(dcom.last_error).to eq(:ok)
             end
+
+            expect(data.length).to eq(file.length)
+            expect(dcom.last_error).to eq(:ok)
           end
         end
       end

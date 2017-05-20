@@ -11,38 +11,52 @@ module Mspack
     # returning the absolute file path.
     #
     # If a block is given, chunks of data are yielded with a maximum size given 
-    # by the dir_or_buffer_size param. The buffer size must be greater than or
-    # equal to DEFAULT_BUFFER_SIZE.
+    # by the dir_or_buffer_size param. Buffer_size must be a multiple of 
+    # DEFAULT_BUFFER_SIZE.
     def extract(file, dir_or_buffer_size = DEFAULT_BUFFER_SIZE)
 
       if block_given?
-        unless dir_or_buffer_size.is_a?(Fixnum)
+        buffer_size = dir_or_buffer_size
+
+        if (buffer_size.fdiv(DEFAULT_BUFFER_SIZE).modulo(1) != 0)
           raise ArgumentError, 
-            'dir_or_buffer_size must be a Fixnum if a block is given'
+            'Buffer_size must be a multiple of DEFAULT_BUFFER_SIZE'
         end
 
-        if dir_or_buffer_size < DEFAULT_BUFFER_SIZE
-          raise ArgumentError, 
-            'dir_or_buffer_size must be greater than or equal to '\
-            'DEFAULT_BUFFER_SIZE'
-        end
-
-        i = 0
-        buffer = Array.new(dir_or_buffer_size * 2 - 1, 0)
+        a = 0
+        b = 0
+        did_yield = false
+        buffer = "\0" * buffer_size
 
         extract_to_path(file) do |data|
+          did_yield = false
+          b = a + data.length - 1
+          buffer[a..b] = data
 
+          # full buffer - yield and reset
+          if b + 1 == buffer_size 
+            yield buffer[0..b]
+            did_yield = true
+            a = 0
 
-
-          yield data
+          # last read if it's less than default size
+          elsif data.length > 0 && data.length < DEFAULT_BUFFER_SIZE
+            yield buffer[0..b]
+            did_yield = true
+          
+          else
+            a = b + 1
+          end
         end
+
+        # last read happened to be default size
+        yield buffer[0..b] if !did_yield && b > 0
 
       else
         path = Mspack.ensure_path(file.filename, dir_or_buffer_size)
         extract_to_path(file, path)
+        return path
       end
-
-      path
     end
 
 
